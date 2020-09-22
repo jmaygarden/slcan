@@ -11,7 +11,10 @@ fn main() {
         }
     }
     .unwrap();
-    let mut can = slcan::CanSocket::<serial::SystemPort>::open(port);
+    let mut can = slcan::CanSocket::<serial::SystemPort>::new(port);
+
+    can.close().unwrap();
+    can.open(Some(slcan::BitRate::Setup1Mbit)).unwrap();
 
     loop {
         match can.read() {

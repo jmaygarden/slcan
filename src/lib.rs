@@ -12,6 +12,19 @@ const BELL: u8 = 0x07;
 const CARRIAGE_RETURN: u8 = '\r' as u8;
 const TRANSMIT_COMMAND: u8 = 't' as u8;
 
+#[repr(u8)]
+pub enum BitRate {
+    Setup10Kbit = '0' as u8,
+    Setup20Kbit = '1' as u8,
+    Setup50Kbit = '2' as u8,
+    Setup100Kbit = '3' as u8,
+    Setup125Kbit = '4' as u8,
+    Setup250Kbit = '5' as u8,
+    Setup500Kbit = '6' as u8,
+    Setup800Kbit = '7' as u8,
+    Setup1Mbit = '8' as u8,
+}
+
 pub struct CanFrame {
     pub id: u32,
     pub dlc: usize,
@@ -97,13 +110,31 @@ impl std::fmt::Display for CanFrame {
 }
 
 impl<P: SerialPort> CanSocket<P> {
-    pub fn open(port: P) -> Self {
+    pub fn new(port: P) -> Self {
         CanSocket {
             port,
             rbuff: [0; SLCAN_MTU],
             rcount: 0,
             error: false,
         }
+    }
+
+    pub fn open(&mut self, bitrate: Option<BitRate>) -> io::Result<()> {
+        if let Some(bitrate) = bitrate {
+            let buf = ['S' as u8, bitrate as u8, '\r' as u8];
+
+            self.port.write(&buf)?;
+        }
+
+        self.port.write("O\r".as_bytes())?;
+
+        Ok(())
+    }
+
+    pub fn close(&mut self) -> io::Result<()> {
+        self.port.write("C\r".as_bytes())?;
+
+        Ok(())
     }
 
     pub fn read(&mut self) -> io::Result<CanFrame> {
@@ -114,12 +145,14 @@ impl<P: SerialPort> CanSocket<P> {
             let s = buf[0];
 
             if s == CARRIAGE_RETURN || s == BELL {
-                if !self.error && self.rcount > 4 {
-                    return self.bump();
-                }
+                let valid = !self.error && self.rcount > 4;
 
                 self.error = false;
                 self.rcount = 0;
+
+                if valid {
+                    return self.bump();
+                }
             } else if !self.error {
                 if self.rcount < SLCAN_MTU {
                     self.rbuff[self.rcount] = s;
