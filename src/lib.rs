@@ -75,7 +75,7 @@ fn hextou32(buf: &[u8]) -> Result<u32, ()> {
     let mut value = 0u32;
 
     for s in buf.iter() {
-        value <<= 8;
+        value <<= 4;
 
         match hextou8(*s) {
             Ok(byte) => value |= byte as u32,
@@ -119,14 +119,9 @@ impl<P: SerialPort> CanSocket<P> {
         }
     }
 
-    pub fn open(&mut self, bitrate: Option<BitRate>) -> io::Result<()> {
-        if let Some(bitrate) = bitrate {
-            let buf = ['S' as u8, bitrate as u8, '\r' as u8];
-
-            self.port.write(&buf)?;
-        }
-
-        self.port.write("O\r".as_bytes())?;
+    pub fn open(&mut self, bitrate: BitRate) -> io::Result<()> {
+        self.port.write(&['S' as u8, bitrate as u8, '\r' as u8])?;
+        self.port.write(&['O' as u8, '\r' as u8])?;
 
         Ok(())
     }
