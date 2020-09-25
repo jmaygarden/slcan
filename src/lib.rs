@@ -12,6 +12,8 @@ const BELL: u8 = 0x07;
 const CARRIAGE_RETURN: u8 = '\r' as u8;
 const TRANSMIT_COMMAND: u8 = 't' as u8;
 
+const HEX_LUT: &[u8] = "0123456789ABCDEF".as_bytes();
+
 #[repr(u8)]
 pub enum BitRate {
     Setup10Kbit = '0' as u8,
@@ -86,6 +88,29 @@ fn hextou32(buf: &[u8]) -> Result<u32, ()> {
     Ok(value)
 }
 
+fn hexdigit(value: u32) -> u8 {
+    HEX_LUT[(value & 0xF) as usize]
+}
+
+fn u32tohex3(value: u32) -> [u8; 3] {
+    [
+        hexdigit(value >> 8),
+        hexdigit(value >> 4),
+        hexdigit(value >> 0),
+    ]
+}
+
+fn bytestohex(data: &[u8]) -> Vec<u8> {
+    let mut buf = Vec::<u8>::with_capacity(2 * data.len());
+
+    for byte in data {
+        buf.push(hexdigit((byte >> 0) as u32));
+        buf.push(hexdigit((byte >> 4) as u32));
+    }
+
+    buf
+}
+
 impl CanFrame {
     pub fn new(id: u32, dlc: usize, data: &[u8]) -> Self {
         let mut copy = [u8::default(); 8];
@@ -130,6 +155,24 @@ impl<P: SerialPort> CanSocket<P> {
         self.port.write("C\r".as_bytes())?;
 
         Ok(())
+    }
+
+    pub fn write(&mut self, id: u32, data: &[u8]) -> io::Result<usize> {
+        let dlc = data.len();
+
+        if dlc > 8 {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "data length"));
+        }
+
+        let mut buf = Vec::<u8>::with_capacity(6 + 2 * dlc);
+
+        buf.push('t' as u8);
+        buf.extend_from_slice(&u32tohex3(id));
+        buf.push(dlc as u8);
+        buf.extend_from_slice(&bytestohex(data));
+        buf.push('\r' as u8);
+
+        self.port.write(buf.as_slice())
     }
 
     pub fn read(&mut self) -> io::Result<CanFrame> {
