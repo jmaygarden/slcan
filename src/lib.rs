@@ -104,8 +104,8 @@ fn bytestohex(data: &[u8]) -> Vec<u8> {
     let mut buf = Vec::<u8>::with_capacity(2 * data.len());
 
     for byte in data {
-        buf.push(hexdigit((byte >> 0) as u32));
         buf.push(hexdigit((byte >> 4) as u32));
+        buf.push(hexdigit((byte >> 0) as u32));
     }
 
     buf
@@ -168,7 +168,7 @@ impl<P: SerialPort> CanSocket<P> {
 
         buf.push('t' as u8);
         buf.extend_from_slice(&u32tohex3(id));
-        buf.push(dlc as u8);
+        buf.push(hexdigit(dlc as u32));
         buf.extend_from_slice(&bytestohex(data));
         buf.push('\r' as u8);
 
