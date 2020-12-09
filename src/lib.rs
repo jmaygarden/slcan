@@ -2,6 +2,8 @@ extern crate serial_core as serial;
 
 use serial::prelude::*;
 use std::io;
+#[cfg(target_family = "unix")]
+use std::os::unix::prelude::AsRawFd;
 
 // maximum rx buffer len: extended CAN frame with timestamp
 const SLCAN_MTU: usize = "T1111222281122334455667788EA5F\r".len() + 1;
@@ -38,6 +40,16 @@ pub struct CanSocket<P: SerialPort> {
     rbuff: [u8; SLCAN_MTU],
     rcount: usize,
     error: bool,
+}
+
+#[cfg(target_family = "unix")]
+impl<P> AsRawFd for CanSocket<P>
+where
+    P: SerialPort + AsRawFd,
+{
+    fn as_raw_fd(&self) -> std::os::unix::prelude::RawFd {
+        self.port.as_raw_fd()
+    }
 }
 
 fn hextou8(s: u8) -> Result<u8, ()> {
