@@ -3,6 +3,10 @@ extern crate serial_core as serial;
 use serial::prelude::*;
 use std::io;
 
+#[cfg(feature = "embedded-can-impl")]
+#[cfg_attr(docsrs, doc(cfg(feature = "embedded-can-impl")))]
+pub mod embedded_can_slcan;
+
 // maximum rx buffer len: extended CAN frame with timestamp
 const SLCAN_MTU: usize = "T1111222281122334455667788EA5F\r".len() + 1;
 const SLCAN_CMD_LEN: usize = 1;
