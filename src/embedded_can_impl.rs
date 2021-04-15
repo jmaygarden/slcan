@@ -1,17 +1,11 @@
 use crate::{CanFrame, CanSocket};
-use embedded_can::{Can, ExtendedId, Frame, Id, StandardId};
+use embedded_can::{Can, Frame, Id};
 use serial_core::SerialPort;
 use std::io;
 
-const EFF_FLAG: u32 = 0x80000000;
-
 impl Frame for CanFrame {
     fn new(id: impl Into<Id>, data: &[u8]) -> Result<Self, ()> {
-        let id = match id.into() {
-            Id::Standard(id) => id.as_raw().into(),
-            Id::Extended(id) => id.as_raw() | EFF_FLAG,
-        };
-        Ok(CanFrame::new(id, data.len(), data))
+        Ok(CanFrame::new(id.into(), data.len(), data))
     }
 
     fn new_remote(_id: impl Into<Id>, _dlc: usize) -> Result<Self, ()> {
@@ -20,7 +14,7 @@ impl Frame for CanFrame {
     }
 
     fn is_extended(&self) -> bool {
-        self.id & EFF_FLAG != 0
+        matches!(self.id, Id::Extended(_))
     }
 
     fn is_remote_frame(&self) -> bool {
@@ -29,11 +23,7 @@ impl Frame for CanFrame {
     }
 
     fn id(&self) -> Id {
-        if self.id & EFF_FLAG != 0 {
-            Id::Extended(unsafe { ExtendedId::new_unchecked(self.id) })
-        } else {
-            Id::Standard(unsafe { StandardId::new_unchecked(self.id as u16) })
-        }
+        self.id
     }
 
     fn dlc(&self) -> usize {
