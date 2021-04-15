@@ -31,6 +31,16 @@ pub enum BitRate {
     Setup1Mbit = '8' as u8,
 }
 
+#[repr(u8)]
+pub enum Command {
+    /// Setup with standard CAN [bit rates](BitRate).
+    Setup = 'S' as u8,
+    /// Open the CAN channel in normal mode (sending & receiving).
+    Open = 'O' as u8,
+    /// Close the CAN channel.
+    Close = 'C' as u8,
+}
+
 pub struct CanFrame {
     pub id: u32,
     pub dlc: usize,
@@ -149,14 +159,15 @@ impl<P: SerialPort> CanSocket<P> {
     }
 
     pub fn open(&mut self, bitrate: BitRate) -> io::Result<()> {
-        self.port.write(&['S' as u8, bitrate as u8, '\r' as u8])?;
-        self.port.write(&['O' as u8, '\r' as u8])?;
+        self.port
+            .write(&[Command::Setup as u8, bitrate as u8, '\r' as u8])?;
+        self.port.write(&[Command::Open as u8, '\r' as u8])?;
 
         Ok(())
     }
 
     pub fn close(&mut self) -> io::Result<()> {
-        self.port.write("C\r".as_bytes())?;
+        self.port.write(&[Command::Close as u8, '\r' as u8])?;
 
         Ok(())
     }
