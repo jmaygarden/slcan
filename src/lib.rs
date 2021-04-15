@@ -5,7 +5,7 @@ use std::io;
 
 #[cfg(feature = "embedded-can-impl")]
 #[cfg_attr(docsrs, doc(cfg(feature = "embedded-can-impl")))]
-pub mod embedded_can_slcan;
+pub mod embedded_can_impl;
 
 // maximum rx buffer len: extended CAN frame with timestamp
 const SLCAN_MTU: usize = "T1111222281122334455667788EA5F\r".len() + 1;
