@@ -6,6 +6,8 @@ use std::{
     convert::{TryFrom, TryInto},
     io,
 };
+#[cfg(target_family = "unix")]
+use std::os::unix::prelude::AsRawFd;
 
 pub mod embedded_can_impl;
 
@@ -76,6 +78,16 @@ pub struct CanSocket<P: SerialPort> {
     rbuff: [u8; SLCAN_MTU],
     rcount: usize,
     error: bool,
+}
+
+#[cfg(target_family = "unix")]
+impl<P> AsRawFd for CanSocket<P>
+where
+    P: SerialPort + AsRawFd,
+{
+    fn as_raw_fd(&self) -> std::os::unix::prelude::RawFd {
+        self.port.as_raw_fd()
+    }
 }
 
 fn hextou8(s: u8) -> Result<u8, ()> {
